@@ -8,7 +8,7 @@ FROM alpine:3.19 as lt-builder
 WORKDIR /tmp
 
 # Скачиваем и распаковываем бинарник Litestream
-RUN wget -O litestream.tar.gz "https://github.com/benbjohnson/litestream/releases/latest/download/litestream_linux_amd64.tar.gz" \
+RUN wget -O litestream.tar.gz "https://github.com/benbjohnson/litestream/releases/download/v0.5.2/litestream-0.5.2-darwin-x86_64.tar.gz" \
     && tar -xzf litestream.tar.gz \
     && rm litestream.tar.gz
 
