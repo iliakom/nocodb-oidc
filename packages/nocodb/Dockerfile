@@ -82,8 +82,10 @@ COPY --link --from=builder /usr/src/appEntry/ /usr/src/appEntry/
 # Install build dependencies and rebuild sqlite3
 RUN apk add --no-cache python3 make g++ npm && \
     cd /usr/src/app && \
-    npm rebuild sqlite3 --build-from-source && \
-    apk del python3 make g++
+    # Переустановить sqlite3 с сохранением всех файлов
+    npm install sqlite3 --no-save --build-from-source && \
+    # Удалить build зависимости
+    apk del python3 make g++ npm
 
 EXPOSE 8080
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
