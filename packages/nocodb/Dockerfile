@@ -1,34 +1,42 @@
-# syntax=docker/dockerfile:1
-
 ###########
 # Litestream Builder
 ###########
-FROM golang:alpine3.19 as lt-builder
+FROM golang:bullseye AS lt-builder
 
 WORKDIR /usr/src/
 
-RUN apk add --no-cache git make musl-dev gcc
+RUN apt-get update && apt-get install -y \
+    git \
+    make \
+    gcc \
+    libc-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # build litestream
-RUN apk add --no-cache curl \
-    && curl -L "https://github.com/benbjohnson/litestream/releases/download/v0.5.2/litestream-0.5.2-linux-x86_64.tar.gz" -o litestream.tar.gz \
-    && mkdir -p litestream \
-    && tar -xzf litestream.tar.gz -C litestream \
-    && rm litestream.tar.gz
-
-RUN cp litestream/litestream /usr/src/lt
+RUN git clone https://github.com/benbjohnson/litestream.git litestream
+RUN cd litestream && go install ./cmd/litestream
+RUN cp $GOPATH/bin/litestream /usr/src/lt
 
 ###########
 # Builder
 ###########
-FROM node:18.19.1-alpine as builder
+FROM node:22-slim AS builder
 WORKDIR /usr/src/app
 
-# install node-gyp dependencies
-RUN apk add --no-cache python3 make g++
+# Install dependencies required for node-gyp and other build tools
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-distutils \
+    python-is-python3 \
+    make \
+    g++ \
+    libssl-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN python3 --version && python --version
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # Copy application dependency manifests to the container image.
 COPY ./package.json ./package.json
@@ -36,24 +44,21 @@ RUN printf "packages:\n  - ./nc-lib-gui" > ./pnpm-workspace.yaml
 COPY --link ./docker/main.js ./docker/main.js
 COPY --link ./docker/start-litestream.sh /usr/src/appEntry/start.sh
 COPY --link src/public/ ./docker/public/
-COPY ./docker/nc-lib-gui/ ./nc-lib-gui/
+COPY ../nc-lib-gui/ ./nc-lib-gui/
 
-# for pnpm to generate a flat node_modules without symlinks
-# so that modclean could work as expected
+# Configure pnpm to use hoisted node_modules for modclean compatibility
 RUN echo "node-linker=hoisted" > .npmrc
 
-# install production dependencies,
-# reduce node_module size with modclean & removing sqlite deps,
+# Install production dependencies, reduce node_modules size with modclean,
 # and add execute permission to start.sh
-RUN pnpm install --prod --shamefully-hoist \
-    && pnpm dlx modclean --patterns="default:*" --ignore="nc-lib-gui/**,dayjs/**,express-status-monitor/**,@azure/msal-node/dist/**" --run  \
-    # && rm -rf ./node_modules/sqlite3/deps \
-    && chmod +x /usr/src/appEntry/start.sh
+RUN pnpm install --prod \
+    && pnpm prune --prod \
+    && if [ -f "/usr/src/appEntry/start.sh" ]; then chmod +x /usr/src/appEntry/start.sh; fi
 
 ##########
 # Runner
 ##########
-FROM alpine:3.19
+FROM node:22-slim
 WORKDIR /usr/src/app
 
 ENV LITESTREAM_S3_SKIP_VERIFY=false \
@@ -66,19 +71,28 @@ ENV LITESTREAM_S3_SKIP_VERIFY=false \
     NODE_ENV=production \
     PORT=8080
 
-RUN apk add --update --no-cache \
-    dasel \
+# Install additional runtime dependencies
+RUN apt-get update && apt-get install -y \
     dumb-init \
-    nodejs
+    curl \
+    wget \
+    && curl -L "https://github.com/TomWright/dasel/releases/download/v2.8.1/dasel_linux_$(dpkg --print-architecture)" -o /usr/local/bin/dasel \
+    && chmod +x /usr/local/bin/dasel \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pnpm rebuild sqlite3 --runtime=node --target=$(node -v) --target_platform=linux --target_arch=$(node -p "process.arch")
+# Install pnpm in runner stage
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # Copy litestream binary and config file
 COPY --link --from=lt-builder /usr/src/lt /usr/local/bin/litestream
 COPY --link ./docker/litestream.yml /etc/litestream.yml
+
 # Copy production code & main entry file
 COPY --link --from=builder /usr/src/app/ /usr/src/app/
 COPY --link --from=builder /usr/src/appEntry/ /usr/src/appEntry/
+
+# Rebuild sqlite3 native bindings for current platform
+RUN pnpm rebuild sqlite3 --runtime=node --target=$(node -v) --target_platform=linux --target_arch=$(node -p "process.arch")
 
 EXPOSE 8080
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
