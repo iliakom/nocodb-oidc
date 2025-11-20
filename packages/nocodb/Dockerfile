@@ -83,7 +83,7 @@ COPY --link --from=builder /usr/src/appEntry/ /usr/src/appEntry/
 RUN apk add --no-cache python3 make g++ node-gyp && \
     cd /usr/src/app && \
     npm rebuild sqlite3 --build-from-source && \
-    apk del python3 make g++ \
+    apk del python3 make g++
 
 EXPOSE 8080
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
