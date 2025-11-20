@@ -1,18 +1,16 @@
 # syntax=docker/dockerfile:1
 
 ###########
-# Litestream Builder
+# Litestream Builder (используем готовый бинарник)
 ###########
-FROM golang:alpine3.19 as lt-builder
+FROM alpine:3.19 as lt-builder
 
-WORKDIR /usr/src/
+WORKDIR /tmp
 
-RUN apk add --no-cache git make musl-dev gcc
-
-# build litestream
-RUN git clone https://github.com/benbjohnson/litestream.git litestream
-RUN cd litestream && go install ./cmd/litestream/litestream
-RUN cp $GOPATH/bin/litestream /usr/src/lt
+# Скачиваем и распаковываем бинарник Litestream
+RUN wget -O litestream.tar.gz "https://github.com/benbjohnson/litestream/releases/latest/download/litestream_linux_amd64.tar.gz" \
+    && tar -xzf litestream.tar.gz \
+    && rm litestream.tar.gz
 
 ###########
 # Builder
@@ -68,7 +66,7 @@ RUN apk add --update --no-cache \
     nodejs
 
 # Copy litestream binary and config file
-COPY --link --from=lt-builder /usr/src/lt /usr/local/bin/litestream
+COPY --from=lt-builder /tmp/litestream /usr/local/bin/litestream
 COPY --link ./docker/litestream.yml /etc/litestream.yml
 # Copy production code & main entry file
 COPY --link --from=builder /usr/src/app/ /usr/src/app/
