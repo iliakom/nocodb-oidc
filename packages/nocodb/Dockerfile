@@ -26,7 +26,7 @@ FROM node:18.19.1-bullseye as builder
 WORKDIR /usr/src/app
 
 # install node-gyp dependencies
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
