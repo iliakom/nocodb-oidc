@@ -18,6 +18,7 @@ RUN apk add --no-cache curl \
 
 RUN cp litestream/litestream /usr/src/lt
 
+
 ###########
 # Builder
 ###########
@@ -32,7 +33,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy application dependency manifests to the container image.
 COPY ./package.json ./package.json
-RUN sed -i 's/workspace:*/link:.\/nc-lib-gui\//g' package.json
+RUN printf "packages:\n  - ./nc-lib-gui" > ./pnpm-workspace.yaml
 COPY --link ./docker/main.js ./docker/main.js
 COPY --link ./docker/start-litestream.sh /usr/src/appEntry/start.sh
 COPY --link src/public/ ./docker/public/
