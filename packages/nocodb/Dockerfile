@@ -1,16 +1,13 @@
+# syntax=docker/dockerfile:1
+
 ###########
 # Litestream Builder
 ###########
-FROM golang:bullseye AS lt-builder
+FROM golang:alpine3.19 as lt-builder
 
 WORKDIR /usr/src/
 
-RUN apt-get update && apt-get install -y \
-    git \
-    make \
-    gcc \
-    libc-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache git make musl-dev gcc
 
 # build litestream
 RUN git clone https://github.com/benbjohnson/litestream.git litestream
@@ -20,46 +17,37 @@ RUN cp $GOPATH/bin/litestream /usr/src/lt
 ###########
 # Builder
 ###########
-FROM node:22-slim AS builder
+FROM node:18.19.1-alpine as builder
 WORKDIR /usr/src/app
 
-# Install dependencies required for node-gyp and other build tools
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-distutils \
-    python-is-python3 \
-    make \
-    g++ \
-    libssl-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# install node-gyp dependencies
+RUN apk add --no-cache python3 make g++
 
-RUN python3 --version && python --version
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+# install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy application dependency manifests to the container image.
-COPY ./package.json ./package.json
-RUN printf "packages:\n  - ./nc-lib-gui" > ./pnpm-workspace.yaml
+COPY --link ./package.json ./package.json
 COPY --link ./docker/main.js ./docker/main.js
 COPY --link ./docker/start-litestream.sh /usr/src/appEntry/start.sh
 COPY --link src/public/ ./docker/public/
-RUN ls && echo '--------------' && ls .. && echo '--------------' && ls ../..
-COPY ../nc-lib-gui/ ./nc-lib-gui/
 
-# Configure pnpm to use hoisted node_modules for modclean compatibility
+# for pnpm to generate a flat node_modules without symlinks
+# so that modclean could work as expected
 RUN echo "node-linker=hoisted" > .npmrc
 
-# Install production dependencies, reduce node_modules size with modclean,
+# install production dependencies,
+# reduce node_module size with modclean & removing sqlite deps,
 # and add execute permission to start.sh
-RUN pnpm install --prod \
-    && pnpm prune --prod \
-    && if [ -f "/usr/src/appEntry/start.sh" ]; then chmod +x /usr/src/appEntry/start.sh; fi
+RUN pnpm install --prod --shamefully-hoist \
+    && pnpm dlx modclean --patterns="default:*" --ignore="nc-lib-gui/**,dayjs/**,express-status-monitor/**,@azure/msal-node/dist/**" --run  \
+    && rm -rf ./node_modules/sqlite3/deps \
+    && chmod +x /usr/src/appEntry/start.sh
 
 ##########
 # Runner
 ##########
-FROM node:22-slim
+FROM alpine:3.19
 WORKDIR /usr/src/app
 
 ENV LITESTREAM_S3_SKIP_VERIFY=false \
@@ -72,28 +60,17 @@ ENV LITESTREAM_S3_SKIP_VERIFY=false \
     NODE_ENV=production \
     PORT=8080
 
-# Install additional runtime dependencies
-RUN apt-get update && apt-get install -y \
+RUN apk add --update --no-cache \
+    dasel \
     dumb-init \
-    curl \
-    wget \
-    && curl -L "https://github.com/TomWright/dasel/releases/download/v2.8.1/dasel_linux_$(dpkg --print-architecture)" -o /usr/local/bin/dasel \
-    && chmod +x /usr/local/bin/dasel \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install pnpm in runner stage
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+    nodejs
 
 # Copy litestream binary and config file
 COPY --link --from=lt-builder /usr/src/lt /usr/local/bin/litestream
 COPY --link ./docker/litestream.yml /etc/litestream.yml
-
 # Copy production code & main entry file
 COPY --link --from=builder /usr/src/app/ /usr/src/app/
 COPY --link --from=builder /usr/src/appEntry/ /usr/src/appEntry/
-
-# Rebuild sqlite3 native bindings for current platform
-RUN pnpm rebuild sqlite3 --runtime=node --target=$(node -v) --target_platform=linux --target_arch=$(node -p "process.arch")
 
 EXPOSE 8080
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
