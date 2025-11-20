@@ -32,7 +32,8 @@ RUN printf "packages:\n  - ./nc-lib-gui" > ./pnpm-workspace.yaml
 COPY --link ./docker/main.js ./docker/main.js
 COPY --link ./docker/start-litestream.sh /usr/src/appEntry/start.sh
 COPY --link src/public/ ./docker/public/
-COPY ./docker/nc-lib-gui/ ./nc-lib-gui/
+RUN ls && echo '--------------' && ls .. && echo '--------------' && ls ../..
+COPY ../nc-lib-gui/ ./nc-lib-gui/
 
 # for pnpm to generate a flat node_modules without symlinks
 # so that modclean could work as expected
