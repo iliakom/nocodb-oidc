@@ -111,7 +111,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/nocodb:${{ github.event.inputs.tag || inputs.tag }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/nocodb-oidc:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/nocodb:latest
 
         # Temp fix
         # https://github.com/docker/build-push-action/issues/252
