@@ -71,6 +71,9 @@ RUN apk add --update --no-cache \
     dumb-init \
     nodejs
 
+# Добавьте это перед COPY --link --from=builder
+RUN npm rebuild sqlite3 --runtime=node --target=$(node -v) --target_platform=linux --target_arch=$(node -p "process.arch")
+
 # Copy litestream binary and config file
 COPY --link --from=lt-builder /usr/src/lt /usr/local/bin/litestream
 COPY --link ./docker/litestream.yml /etc/litestream.yml
