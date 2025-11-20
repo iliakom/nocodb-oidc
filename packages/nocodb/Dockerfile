@@ -16,9 +16,7 @@ RUN apk add --no-cache curl \
     && tar -xzf litestream.tar.gz -C litestream \
     && rm litestream.tar.gz
 
-# RUN git clone https://github.com/benbjohnson/litestream.git litestream
-RUN cd litestream && go install ./cmd/litestream
-RUN cp $GOPATH/bin/litestream /usr/src/lt
+RUN cp litestream/litestream /usr/src/lt
 
 ###########
 # Builder
