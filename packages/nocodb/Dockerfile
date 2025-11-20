@@ -9,7 +9,7 @@ WORKDIR /tmp
 
 # Скачиваем и распаковываем бинарник Litestream для Linux
 RUN apk add --no-cache curl \
-    && curl -L "https://github.com/benbjohnson/litestream/releases/download/v0.5.2/litestream-0.5.2-linux-amd64.tar.gz" -o litestream.tar.gz \
+    && curl -L "https://github.com/benbjohnson/litestream/releases/download/v0.5.2/litestream-0.5.2-linux-x86_64.tar.gz" -o litestream.tar.gz \
     && tar -xzf litestream.tar.gz \
     && rm litestream.tar.gz
 
