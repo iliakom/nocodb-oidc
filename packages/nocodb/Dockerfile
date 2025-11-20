@@ -80,7 +80,7 @@ COPY --link --from=builder /usr/src/app/ /usr/src/app/
 COPY --link --from=builder /usr/src/appEntry/ /usr/src/appEntry/
 
 # Install build dependencies and rebuild sqlite3
-RUN apk add --no-cache python3 make g++ node-gyp && \
+RUN apk add --no-cache python3 make g++ npm && \
     cd /usr/src/app && \
     npm rebuild sqlite3 --build-from-source && \
     apk del python3 make g++
