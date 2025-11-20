@@ -80,12 +80,16 @@ COPY --link --from=builder /usr/src/app/ /usr/src/app/
 COPY --link --from=builder /usr/src/appEntry/ /usr/src/appEntry/
 
 # Install build dependencies and rebuild sqlite3
+# Заменить строки 82-92 на:
+# Install build dependencies and rebuild sqlite3
 RUN apk add --no-cache python3 make g++ npm && \
+    npm install -g node-gyp && \
     cd /usr/src/app && \
     # Переустановить sqlite3 с пересборкой
     npm rebuild sqlite3 --build-from-source && \
     # Удалить build зависимости
     apk del python3 make g++ npm
+
 
 
 EXPOSE 8080
