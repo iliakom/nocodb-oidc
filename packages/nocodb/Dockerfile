@@ -82,10 +82,12 @@ COPY --link --from=builder /usr/src/appEntry/ /usr/src/appEntry/
 # Install build dependencies and rebuild sqlite3
 RUN apk add --no-cache python3 make g++ npm && \
     cd /usr/src/app && \
-    # Установить pnpm для корректной работы с workspace
-    npm install -g pnpm && \
-    # Пересобрать sqlite3 через pnpm
-    pnpm rebuild sqlite3 --build-from-source && \
+    # Установить node-gyp для сборки
+    npm install -g node-gyp && \
+    # Перейти в директорию sqlite3 и пересобрать
+    cd node_modules/sqlite3 && \
+    node-gyp rebuild && \
+    cd /usr/src/app && \
     # Удалить build зависимости
     apk del python3 make g++ npm
 
