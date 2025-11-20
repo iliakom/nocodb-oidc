@@ -11,7 +11,7 @@ RUN apk add --no-cache git make musl-dev gcc
 
 # build litestream
 RUN git clone https://github.com/benbjohnson/litestream.git litestream
-RUN cd litestream && go install ./cmd/litestream
+RUN cd litestream && go install ./cmd/litestream/litestream
 RUN cp $GOPATH/bin/litestream /usr/src/lt
 
 ###########
