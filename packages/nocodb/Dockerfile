@@ -10,7 +10,13 @@ WORKDIR /usr/src/
 RUN apk add --no-cache git make musl-dev gcc
 
 # build litestream
-RUN git clone https://github.com/benbjohnson/litestream.git litestream
+RUN apk add --no-cache curl \
+    && curl -L "https://github.com/benbjohnson/litestream/releases/download/v0.5.2/litestream-0.5.2-linux-x86_64.tar.gz" -o litestream.tar.gz \
+    && mkdir -p litestream \
+    && tar -xzf litestream.tar.gz -C litestream \
+    && rm litestream.tar.gz
+
+# RUN git clone https://github.com/benbjohnson/litestream.git litestream
 RUN cd litestream && go install ./cmd/litestream
 RUN cp $GOPATH/bin/litestream /usr/src/lt
 
