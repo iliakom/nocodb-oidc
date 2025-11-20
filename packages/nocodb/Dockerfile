@@ -31,10 +31,12 @@ RUN apk add --no-cache python3 make g++
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy application dependency manifests to the container image.
-COPY --link ./package.json ./package.json
+COPY ./package.json ./package.json
+RUN sed -i 's/workspace:*/link:.\/nc-lib-gui\//g' package.json
 COPY --link ./docker/main.js ./docker/main.js
 COPY --link ./docker/start-litestream.sh /usr/src/appEntry/start.sh
 COPY --link src/public/ ./docker/public/
+COPY ./docker/nc-lib-gui/ ./nc-lib-gui/
 
 # for pnpm to generate a flat node_modules without symlinks
 # so that modclean could work as expected
