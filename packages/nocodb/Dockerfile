@@ -47,7 +47,7 @@ RUN echo "node-linker=hoisted" > .npmrc
 # and add execute permission to start.sh
 RUN pnpm install --prod --shamefully-hoist \
     && pnpm dlx modclean --patterns="default:*" --ignore="nc-lib-gui/**,dayjs/**,express-status-monitor/**,@azure/msal-node/dist/**" --run  \
-    && rm -rf ./node_modules/sqlite3/deps \
+    # && rm -rf ./node_modules/sqlite3/deps \
     && chmod +x /usr/src/appEntry/start.sh
 
 ##########
@@ -71,8 +71,7 @@ RUN apk add --update --no-cache \
     dumb-init \
     nodejs
 
-# Добавьте это перед COPY --link --from=builder
-RUN npm rebuild sqlite3 --runtime=node --target=$(node -v) --target_platform=linux --target_arch=$(node -p "process.arch")
+RUN pnpm rebuild sqlite3 --runtime=node --target=$(node -v) --target_platform=linux --target_arch=$(node -p "process.arch")
 
 # Copy litestream binary and config file
 COPY --link --from=lt-builder /usr/src/lt /usr/local/bin/litestream
