@@ -97,9 +97,8 @@ jobs:
       - name: Log into registry
         uses: docker/login-action@v3.3.0
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push
         uses: docker/build-push-action@v3.2.0
@@ -111,8 +110,8 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: true
           tags: |
-            ghcr.io/brunostjohn/nocodb-oidc:${{ github.event.inputs.tag || inputs.tag }}
-            ghcr.io/brunostjohn/nocodb-oidc:latest
+            ikomar/nocodb:${{ github.event.inputs.tag || inputs.tag }}
+            ikomar/nocodb/nocodb-oidc:latest
 
         # Temp fix
         # https://github.com/docker/build-push-action/issues/252
