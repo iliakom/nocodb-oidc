@@ -109,7 +109,7 @@ export class OIDCStrategy extends PassportStrategy(Strategy, 'oidc') {
         clientSecret: process.env.NC_OIDC_CLIENT_SECRET ?? '',
         callbackURL: req.ncSiteUrl + Noco.getConfig().dashboardPath,
         passReqToCallback: true,
-        scope: ['openid', 'profile', 'email', 'offline_access'],
+        scope: ['openid', 'profile', 'email'],
         state: 'oidc',
       });
     } catch (e) {
@@ -136,7 +136,7 @@ export const OIDCStrategyProvider: FactoryProvider = {
         process.env.NC_OIDC_CALLBACK_HOST ?? 'http://localhost:3000'
       }/dashboard`,
       passReqToCallback: true as false,
-      scope: ['openid', 'profile', 'email', 'offline_access'],
+      scope: ['openid', 'profile', 'email'],
     };
 
     return new OIDCStrategy(clientConfig, usersService);
