@@ -22,7 +22,7 @@ RUN cp litestream/litestream /usr/src/lt
 ###########
 # Builder
 ###########
-FROM node:18.19.1-alpine as builder
+FROM node:18.19.1-bullseye as builder
 WORKDIR /usr/src/app
 
 # install node-gyp dependencies
